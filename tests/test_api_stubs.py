@@ -128,3 +128,12 @@ def test_brief():
             "clarificationQuestions": [],
         }
     }
+
+
+def test_place_order():
+    stub = api_stubs.order_received(1, "some service", "test@example.com", "10000.00")
+    assert stub == {
+        "order_id": "1",
+        "created_at": "2016-06-29T10:11:14.000000Z",
+        "status": "received"
+        }

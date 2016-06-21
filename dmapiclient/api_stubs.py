@@ -62,3 +62,11 @@ def brief(status="draft",
         brief['briefs']['clarificationQuestionsAreClosed'] = clarification_questions_closed
 
     return brief
+
+
+def order_received(service_id, po_number, email, amount):
+    return {
+        "order_id": "1",
+        "status": "received",
+        "created_at": "2016-06-29T10:11:14.000000Z"
+        }

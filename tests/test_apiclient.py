@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# above -*- coding: utf-8 -*-
 import os
 
 from flask import json, request
@@ -8,7 +8,7 @@ import pytest
 import mock
 
 from dmapiclient.base import BaseAPIClient
-from dmapiclient import SearchAPIClient, DataAPIClient
+from dmapiclient import SearchAPIClient, DataAPIClient, OrderAPIClient
 from dmapiclient import APIError, HTTPError, InvalidResponse
 from dmapiclient.errors import REQUEST_ERROR_STATUS_CODE
 from dmapiclient.errors import REQUEST_ERROR_MESSAGE
@@ -40,6 +40,11 @@ def search_client():
 @pytest.fixture
 def data_client():
     return DataAPIClient('http://baseurl', 'auth-token', True)
+
+
+@pytest.fixture
+def order_client():
+    return OrderAPIClient('http://baseurl', 'auth-token', True)
 
 
 @pytest.fixture
@@ -280,7 +285,7 @@ class TestSearchApiClient(object):
             rmock.put(
                 'http://baseurl/g-cloud/services/12345',
                 json={'error': 'some error'},
-                status_code=400)
+                status_code=401)
             search_client.index("12345", service)
 
     def test_search_services(self, search_client, rmock):
@@ -1806,3 +1811,64 @@ class TestDataAPIClientIterMethods(object):
 
         assert sleep.called
         assert len(results) == 1
+
+
+@pytest.fixture
+def order():
+    return {
+        "supplier_id": 1,
+        "po_number": "AEX128124",
+        "amount": "1024281.12"
+    }
+
+
+class TestOrderApiClient(object):
+
+    # Health checks and logging
+
+    def test_request_id_is_added_if_available(self, order_client, rmock, app):
+        with app.test_request_context('/'):
+            app.config['DM_REQUEST_ID_HEADER'] = 'DM-Request-Id'
+            request.request_id = 'generated'
+            rmock.get("http://baseurl/_status", json={"status": "ok"}, status_code=200)
+
+            order_client.get_status()
+
+            assert rmock.last_request.headers["DM-Request-Id"] == "generated"
+
+    def test_request_id_is_not_added_if_logging_is_not_loaded(self, order_client, rmock, app):
+        headers = {'DM-Request-Id': 'generated'}
+        with app.test_request_context('/', headers=headers):
+            rmock.get(
+                "http://baseurl/_status",
+                json={"status": "ok"},
+                status_code=200)
+
+            order_client.get_status()
+
+            assert "DM-Request-Id" not in rmock.last_request.headers
+
+    def test_get_status(self, order_client, rmock):
+        rmock.get(
+            "http://baseurl/_status",
+            json={"status": "ok"},
+            status_code=200)
+
+        result = order_client.get_status()
+
+        assert result['status'] == "ok"
+        assert rmock.called
+
+    def test_create_order(self, order_client, rmock, order):
+        rmock.post(
+            "http://baseurl/orders",
+            json={
+                "order_id": 1,
+                "status": "received",
+                "created_at": "2016-06-29T10:11:14.000000Z"
+                },
+            status_code=201)
+
+        result = order_client.create_order(order)
+
+        assert result["status"] == "received"
