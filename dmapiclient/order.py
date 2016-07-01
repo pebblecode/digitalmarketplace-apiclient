@@ -12,4 +12,4 @@ class OrderAPIClient(BaseAPIClient):
     # Orders
 
     def create_order(self, order):
-        return self._post("/orders", content_type='application/json', data=order)
+        return self._post("/orders", data=order)

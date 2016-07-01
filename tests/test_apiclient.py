@@ -1816,7 +1816,8 @@ class TestDataAPIClientIterMethods(object):
 @pytest.fixture
 def order():
     return {
-        "supplier_id": 1,
+        "service_id": 1,
+        "email": "test@example.com",
         "po_number": "AEX128124",
         "amount": "1024281.12"
     }
